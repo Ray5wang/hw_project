@@ -1,0 +1,119 @@
+#include "allocate.h"
+extern struct PhyInfo{
+    int phycpu;
+    int phymem;
+    int phyhard;
+} phyinfo;
+
+extern struct FlavorsInfo{
+    vector<string> vflavors;
+    vector<int> vcpus, vmems;
+} flavorsinfo;
+
+struct deploy{
+    int phyid;
+    vector<string> vflavors;
+    vector<int> nums;  //能放置该类型虚拟机个数
+    int cpuLeft;
+    int memLeft;
+};
+
+void allocate_simple(vector<string> vflavors, vector<int> vflavors_pridict_nums, string dim, char* filename)
+{
+	int full_flag;
+    vector<int> vflavors_pridict_nums_copy = vflavors_pridict_nums;
+    vector<struct deploy> deploys;
+	int mem_sum=0,deploy_num=0;
+    cout << "********1**********"<<endl;
+	for(int i=0;i<(int)vflavors.size();i++){ //need to be deployed
+        cout << " "<<vflavors_pridict_nums[i]<<" "<<flavorsinfo.vmems[i]<<endl;
+		mem_sum +=  vflavors_pridict_nums[i]*flavorsinfo.vmems[i];
+	}
+	deploy_num = mem_sum/phyinfo.phymem+1;
+    //open new physical  初始化需要的服务器数
+    cout << "deploy: "<<deploy_num<<" mem_sum: "<<mem_sum<< "mem : "<< phyinfo.phymem<<endl;
+	for(int j=0;j<deploy_num;j++){
+	    struct deploy new_deploy;
+		new_deploy.phyid = deploys.size() + 1;
+		new_deploy.vflavors = flavorsinfo.vflavors;
+		vector<int> nums(flavorsinfo.vflavors.size(), 0);
+		new_deploy.nums = nums;
+		new_deploy.cpuLeft = phyinfo.phycpu;
+		new_deploy.memLeft = phyinfo.phymem;
+		deploys.push_back(new_deploy);			
+	}
+    cout << "********3**********"<<endl;	
+    for(int i=vflavors.size()-1; i>=0;)
+    {   
+//        cout << i<<" "<<"full:_flag"<<full_flag<<endl;
+		for(int j=0;j<deploy_num;){
+			if(vflavors_pridict_nums[i]) //need to be deployed
+			{   
+				if(flavorsinfo.vcpus[i] <= deploys[j].cpuLeft && flavorsinfo.vmems[i] <= deploys[j].memLeft){//has space
+					deploys[j].nums[i]++;  //deploy
+					deploys[j].cpuLeft -= flavorsinfo.vcpus[i]; //resources substract
+					deploys[j].memLeft -= flavorsinfo.vmems[i];
+					vflavors_pridict_nums[i]--;  //vm substract;
+				}
+				else{
+					full_flag++;
+					j++;
+					if(full_flag>deploy_num){
+						i--;
+						full_flag=0;
+					}
+				}
+			}
+            else{
+                i--;
+                full_flag=0;
+            }
+		}
+	}
+	
+	
+
+    cout << "********4**********"<<endl;
+    //OUTPUT
+    string result_file = "";
+    //vm nums
+    int total_vm = accumulate(vflavors_pridict_nums_copy.begin(), vflavors_pridict_nums_copy.end(), 0);
+    char s[20];
+    sprintf(s, "%d", total_vm);
+    result_file.append(s);
+    result_file.append("\n");
+    //vm items
+    for(int i=0; i<vflavors.size(); i++)
+    {
+        char s[20];
+        sprintf(s, "%d", vflavors_pridict_nums_copy[i]);
+        result_file.append(vflavors[i]).append(" ").append(s).append("\n");
+    }
+    result_file.append("\n");
+     cout << "********5**********"<<endl;
+    //deploys
+    sprintf(s, "%d", deploys.size());
+    result_file.append(s).append("\n");
+    for(int i=0; i<deploys.size(); i++)
+    {
+        char s[20];
+        sprintf(s, "%d", deploys[i].phyid);
+        result_file.append(s).append(" ");
+        for(int j=0; j<deploys[i].vflavors.size(); j++)
+        {
+            if(deploys[i].nums[j]) //not 0
+            {
+                result_file.append(deploys[i].vflavors[j]).append(" ");
+                sprintf(s, "%d", deploys[i].nums[j]);
+                result_file.append(s).append(" ");
+            }
+        }
+        result_file.append("\n");
+    }
+     cout << "********6**********"<<endl;
+    cout << result_file;
+    write_result(result_file.c_str(), filename);
+     cout << "********7**********"<<endl;
+
+}
+

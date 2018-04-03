@@ -1,0 +1,3 @@
+/mnt/hdd2/wxb/huawei/workspace/build/CMakeFiles/edit_cache.dir
+/mnt/hdd2/wxb/huawei/workspace/build/CMakeFiles/ecs.dir
+/mnt/hdd2/wxb/huawei/workspace/build/CMakeFiles/rebuild_cache.dir
